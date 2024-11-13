@@ -1,11 +1,15 @@
 import express from "express";
 import { prisma } from "../utils/prisma.util.js";
 import bcrypt from "bcrypt";
-import { SALT_ROUNDS } from "../constants/env.constant.js";
+import { ACCESS_TOKEN_SECRET_KEY, REFRESH_TOKEN_SECRET_KEY, SALT_ROUNDS } from "../constants/env.constant.js";
+import { signUpValidator } from "../middlewares/validators/sign-up-validator.middleware.js";
+import { signInValidator } from "../middlewares/validators/sign-in-validator.middleware.js";
+import jwt from "jsonwebtoken";
 
 const authRouter = express.Router();
 
-authRouter.post('/sign-up', async (req, res, next) => {
+// 회원가입
+authRouter.post('/sign-up', signUpValidator, async (req, res, next) => {
 	try {
 
 		const { email, password, passwordConfirm, name } = req.body;
@@ -17,19 +21,22 @@ authRouter.post('/sign-up', async (req, res, next) => {
 
 		// 이미 존재하는 이메일인지 확인
 		if (existedUser) {
-			throw new Error("이미 존재하는 이메일입니다.");
+			return res.status(400).json({
+				message: "이미 존재하는 이메일입니다."
+			});
 		}
 
 		// 두 비밀번호가 같은지 확인
 		if (password !== passwordConfirm) {
-			throw new Error("입력한 두 비밀번호가 일치하지 않습니다.");
+			return res.status(400).json({
+				message: "입력한 두 비밀번호가 일치하지 않습니다."
+			});
 		}
-		console.log("#####1111");
-		console.log(SALT_ROUNDS);
-		// 비밀번호 해쉬화
-		const hashedPassword = bcrypt.hashSync(password, +SALT_ROUNDS);
 
-		console.log("#####2222");
+		// 비밀번호 해쉬화
+		const hashedPassword = bcrypt.hashSync(password, SALT_ROUNDS);
+
+
 		// DB에 유저 생성
 		const user = await prisma.user.create({
 			data: {
@@ -53,16 +60,22 @@ authRouter.post('/sign-up', async (req, res, next) => {
 		});
 	}
 });
-authRouter.post('/sign-in', async (req, res, next) => {
+
+// 로그인
+authRouter.post('/sign-in', signInValidator, async (req, res, next) => {
 	try {
 		const { email, password } = req.body;
 
 		if (!email) {
-			throw new Error("이메일을 입력해주세요.");
+			return res.status(400).json({
+				message: "이메일을 입력해주세요."
+			});
 		}
 
 		if (!password) {
-			throw new Error("비밀번호를 입력해주세요.");
+			return res.status(400).json({
+				message: "비밀번호를 입력해주세요."
+			});
 		}
 
 		const existedUser = await prisma.user.findUnique({
@@ -70,16 +83,44 @@ authRouter.post('/sign-in', async (req, res, next) => {
 		});
 
 		if (!existedUser) {
-			throw new Error("존재하지 않는 이메일입니다.");
+			return res.status(400).json({
+				message: "존재하지 않는 이메일입니다."
+			});
 		}
 		const matchedPassword = await bcrypt.compare(password, existedUser.password);
 
 		if (!matchedPassword) {
-			throw new Error("비밀번호가 일치하지 않습니다.")
+			return res.status(400).json({
+				message: "비밀번호가 일치하지 않습니다."
+			});
 		}
+		const payload = existedUser.id;
+		const accessToken = jwt.sign({ payload }, ACCESS_TOKEN_SECRET_KEY, { expiresIn: "1h" });
+		const refreshToken = jwt.sign({ payload }, REFRESH_TOKEN_SECRET_KEY, { expiresIn: "7d" });
+
+
+
+		await prisma.refreshToken.upsert({
+			where: {
+				userId: existedUser.id
+			},
+			update: {
+				token: refreshToken
+			},
+			create: {
+				userId: existedUser.id,
+				token: refreshToken
+			}
+		});
+
+
 
 		return res.status(200).json({
-			message: "로그인 성공"
+			message: "로그인 성공",
+			data: {
+				accessToken,
+				refreshToken
+			}
 		});
 
 	} catch (error) {
