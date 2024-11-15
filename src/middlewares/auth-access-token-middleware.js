@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
-import { prisma } from '../../utils/prisma.util.js';
-import { ACCESS_TOKEN_SECRET_KEY } from '../../constants/env.constant.js';
+import { prisma } from '../utils/prisma.util.js';
+import { ACCESS_TOKEN_SECRET_KEY } from '../constants/env.constant.js';
 
 async function accessTokenMiddleware(req, res, next) {
 

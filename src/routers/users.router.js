@@ -1,6 +1,6 @@
 import express from "express";
 import { prisma } from "../utils/prisma.util.js";
-import { accessTokenMiddleware } from "../middlewares/validators/auth-access-token-middleware.js";
+import { accessTokenMiddleware } from "../middlewares/auth-access-token-middleware.js";
 
 const userRouter = express.Router();
 

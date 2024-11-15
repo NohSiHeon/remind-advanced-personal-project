@@ -1,5 +1,5 @@
 import express from "express";
-import { accessTokenMiddleware } from "../middlewares/validators/auth-access-token-middleware.js";
+import { accessTokenMiddleware } from "../middlewares/auth-access-token-middleware.js";
 import { prisma } from "../utils/prisma.util.js";
 import { resumeValidator } from "../middlewares/validators/resume-validator.middleware.js";
 
@@ -99,19 +99,44 @@ resumeRouter.get('/', accessTokenMiddleware, async (req, res, next) => {
 resumeRouter.get('/:id', accessTokenMiddleware, async (req, res, next) => {
 	const userId = req.user;
 	const { id } = req.params;
+	console.log("userId => ", userId);
+	console.log("id =>", id);
 
 	const user = await prisma.user.findUnique({
 		where: {
 			id: +userId
 		}
 	});
-
+	console.log(user.role == "RECRUITER");
 	if (!user) {
 		return res.status(404).json({
 			message: "존재하지 않는 유저입니다."
 		});
 	}
 
+	if (user.role == 'RECRUITER') {
+		const anyResume = await prisma.resume.findUnique({
+			where: {
+				id: +id
+			},
+			select: {
+				id: true,
+				title: true,
+				introduce: true,
+				status: true,
+				createdAt: true,
+				updatedAt: true,
+				user: {
+					select: {
+						name: true
+					}
+				}
+			}
+		});
+		return res.status(200).json({
+			data: anyResume
+		});
+	}
 	const resume = await prisma.resume.findUnique({
 		where: {
 			userId: +userId,
@@ -132,8 +157,6 @@ resumeRouter.get('/:id', accessTokenMiddleware, async (req, res, next) => {
 		name: user.name
 	}
 
-	console.log(flattenedResume);
-
 	if (!resume) {
 		return res.status(404).json({
 			message: "존재하지 않는 이력서입니다."
@@ -150,7 +173,7 @@ resumeRouter.get('/:id', accessTokenMiddleware, async (req, res, next) => {
 resumeRouter.patch('/:id', accessTokenMiddleware, async (req, res, next) => {
 	const userId = req.user;
 	const { id } = req.params;
-	console.log(id);
+
 	const { title, introduce } = req.body;
 
 	const user = await prisma.user.findUnique({
