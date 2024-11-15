@@ -51,13 +51,16 @@ resumeRouter.post('/create', resumeValidator, accessTokenMiddleware, async (req,
 // 이력서 목록 조회
 resumeRouter.get('/', accessTokenMiddleware, async (req, res, next) => {
 	const userId = req.user;
-
+	let { sort } = req.query;
 	const user = await prisma.user.findUnique({
 		where: {
 			id: +userId
 		}
 	});
 
+	if (!sort) {
+		sort = 'desc';
+	}
 	if (!user) {
 		return res.status(404).json({
 			message: "존재하지 않는 유저입니다."
@@ -75,6 +78,9 @@ resumeRouter.get('/', accessTokenMiddleware, async (req, res, next) => {
 			status: true,
 			createdAt: true,
 			updatedAt: true,
+		},
+		orderBy: {
+			createdAt: sort
 		}
 	});
 
