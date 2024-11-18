@@ -67,6 +67,25 @@ resumeRouter.get('/', accessTokenMiddleware, async (req, res, next) => {
 		});
 	}
 
+	// 채용 담당자일 경우
+	if (user.role == 'RECRUITER') {
+		let { status } = req.query;
+		status = status ? { status } : {};
+
+		console.log(status);
+		const anyResumes = await prisma.resume.findMany({
+			where: status,
+			orderBy: {
+				createdAt: sort
+			}
+		});
+
+		return res.status(200).json({
+			message: "이력서 목록 조회에 성공했습니다.",
+			data: anyResumes
+		});
+	}
+
 	const resumes = await prisma.resume.findMany({
 		where: {
 			userId: +userId
@@ -99,15 +118,14 @@ resumeRouter.get('/', accessTokenMiddleware, async (req, res, next) => {
 resumeRouter.get('/:id', accessTokenMiddleware, async (req, res, next) => {
 	const userId = req.user;
 	const { id } = req.params;
-	console.log("userId => ", userId);
-	console.log("id =>", id);
+
 
 	const user = await prisma.user.findUnique({
 		where: {
 			id: +userId
 		}
 	});
-	console.log(user.role == "RECRUITER");
+
 	if (!user) {
 		return res.status(404).json({
 			message: "존재하지 않는 유저입니다."
