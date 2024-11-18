@@ -21,16 +21,12 @@ authRouter.post('/sign-up', signUpValidator, async (req, res, next) => {
 
 		// 이미 존재하는 이메일인지 확인
 		if (existedUser) {
-			return res.status(400).json({
-				message: "이미 존재하는 이메일입니다."
-			});
+			throw new Error("이미 존재하는 이메일입니다.");
 		}
 
 		// 두 비밀번호가 같은지 확인
 		if (password !== passwordConfirm) {
-			return res.status(400).json({
-				message: "입력한 두 비밀번호가 일치하지 않습니다."
-			});
+			throw new Error("입력한 두 비밀번호가 일치하지 않습니다.");
 		}
 
 		// 비밀번호 해쉬화
@@ -55,9 +51,7 @@ authRouter.post('/sign-up', signUpValidator, async (req, res, next) => {
 
 
 	} catch (error) {
-		return res.status(400).json({
-			message: "오류 발생"
-		});
+		next(error);
 	}
 });
 
@@ -67,15 +61,11 @@ authRouter.post('/sign-in', signInValidator, async (req, res, next) => {
 		const { email, password } = req.body;
 
 		if (!email) {
-			return res.status(400).json({
-				message: "이메일을 입력해주세요."
-			});
+			throw new Error("이메일을 입력해주세요.");
 		}
 
 		if (!password) {
-			return res.status(400).json({
-				message: "비밀번호를 입력해주세요."
-			});
+			throw new Error("비밀번호를 입력해주세요.");
 		}
 
 		const existedUser = await prisma.user.findUnique({
@@ -83,16 +73,12 @@ authRouter.post('/sign-in', signInValidator, async (req, res, next) => {
 		});
 
 		if (!existedUser) {
-			return res.status(400).json({
-				message: "존재하지 않는 이메일입니다."
-			});
+			throw new Error("존재하지 않는 이메일입니다.");
 		}
 		const matchedPassword = await bcrypt.compare(password, existedUser.password);
 
 		if (!matchedPassword) {
-			return res.status(400).json({
-				message: "비밀번호가 일치하지 않습니다."
-			});
+			throw new Error("비밀번호가 일치하지 않습니다.");
 		}
 		const payload = existedUser.id;
 		const accessToken = jwt.sign({ payload }, ACCESS_TOKEN_SECRET_KEY, { expiresIn: "1h" });
@@ -113,8 +99,6 @@ authRouter.post('/sign-in', signInValidator, async (req, res, next) => {
 			}
 		});
 
-
-
 		return res.status(200).json({
 			message: "로그인 성공",
 			data: {
@@ -122,11 +106,8 @@ authRouter.post('/sign-in', signInValidator, async (req, res, next) => {
 				refreshToken
 			}
 		});
-
 	} catch (error) {
-		return res.status(400).json({
-			message: "오류 발생"
-		})
+		next(error);
 	}
 });
 
