@@ -1,6 +1,6 @@
 import { prisma } from "../utils/prisma.util.js";
 
-function roleMiddleware(...role) {
+function roleMiddleware(role) {
 	return async (req, res, next) => {
 		try {
 			const userId = req.user;
@@ -13,7 +13,7 @@ function roleMiddleware(...role) {
 			if (!role.includes(user.role)) {
 				return res.status(403).json({
 					message: "접근 권한이 없습니다."
-				})
+				});
 			}
 
 			next();
