@@ -364,4 +364,51 @@ resumeRouter.patch('/:id/status', accessTokenMiddleware, roleMiddleware(['RECRUI
 		next(error);
 	}
 });
+
+// 이력서 로그 목록 조회
+resumeRouter.get('/:id/logs', async (req, res, next) => {
+	try {
+		const { id } = req.params;
+
+		let resumeLogs = await prisma.resumeLog.findMany({
+			where: {
+				resumeId: +id
+			},
+			orderBy: {
+				createdAt: 'asc'
+			},
+			select: {
+				id: true,
+				resumeId: true,
+				pastStatus: true,
+				reason: true,
+				updateStatus: true,
+				createdAt: true,
+				user: {
+					select: {
+						name: true
+					}
+				}
+			}
+		});
+		resumeLogs = resumeLogs.map(log => {
+			return {
+				id: log.id,
+				name: log.user.name,
+				resumeId: log.resumeId,
+				pastStatus: log.pastStatus,
+				updateStatus: log.updateStatus,
+				reason: log.reason,
+				createdAt: log.createdAt
+			}
+		});
+
+		return res.status(200).json({
+			message: "이력서 로그 목록 조회에 성공했습니다.",
+			data: resumeLogs
+		});
+	} catch (error) {
+		next(error);
+	}
+});
 export { resumeRouter };
