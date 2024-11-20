@@ -38,18 +38,34 @@ model User {
 
   resumes      Resume[]
   RefreshToken RefreshToken?
+  ResumeLogs   ResumeLog[]
 }
 
 model Resume {
   id        Int      @id @default(autoincrement())
-  userId    Int
+  userId    Int      @map("user_id")
   title     String
   introduce String
   status    Status   @default(APPLY)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  user User @relation(fields: [userId], references: [id])
+  user      User        @relation(fields: [userId], references: [id])
+  ResumeLog ResumeLog[]
+}
+
+model ResumeLog {
+  id           Int      @id @default(autoincrement())
+  resumeId     Int      @map("resume_id")
+  userId       Int      @map("user_id")
+  reason       String
+  pastStatus   Status   @map("past_status")
+  updateStatus Status   @map("update_status")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  user   User   @relation(fields: [userId], references: [id])
+  resume Resume @relation(fields: [resumeId], references: [id])
 }
 
 model RefreshToken {
@@ -58,5 +74,6 @@ model RefreshToken {
   token     String
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
-  user      User     @relation(fields: [userId], references: [id])
+
+  user User @relation(fields: [userId], references: [id])
 }
