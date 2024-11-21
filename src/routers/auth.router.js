@@ -5,6 +5,7 @@ import { ACCESS_TOKEN_SECRET_KEY, REFRESH_TOKEN_SECRET_KEY, SALT_ROUNDS } from "
 import { signUpValidator } from "../middlewares/validators/sign-up-validator.middleware.js";
 import { signInValidator } from "../middlewares/validators/sign-in-validator.middleware.js";
 import jwt from "jsonwebtoken";
+import { refreshTokenMiddleware } from "../middlewares/auth-refresh-token-middleware.js";
 
 const authRouter = express.Router();
 
@@ -111,4 +112,25 @@ authRouter.post('/sign-in', signInValidator, async (req, res, next) => {
 	}
 });
 
+// 로그아웃
+authRouter.delete('/sign-out', refreshTokenMiddleware, async (req, res, next) => {
+	const id = req.user;
+
+	const token = await prisma.refreshToken.findUnique({
+		where: {
+			userId: +id
+		}
+	});
+
+	await prisma.refreshToken.delete({
+		where: {
+			userId: +id
+		}
+	});
+
+	return res.status(200).json({
+		message: "로그아웃에 성공했습니다.",
+		data: id
+	});
+});
 export { authRouter };
